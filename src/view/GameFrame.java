@@ -2,7 +2,7 @@ package view;
 
 import javax.swing.*;
 
-public class GameFrame  extends JFrame {
+public class GameFrame extends JFrame {
     public GameFrame() {
         this.add(new GamePanel());
         this.setTitle("Conway's Game of Life");
