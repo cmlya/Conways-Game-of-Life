@@ -4,9 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.util.Random;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class GamePanel extends JPanel implements ActionListener {
     static final int SCREEN_WIDTH = 1000;
@@ -18,42 +17,44 @@ public class GamePanel extends JPanel implements ActionListener {
     int[][] cells = new int[HEIGHT_UNITS][WIDTH_UNITS];
     boolean running = false;
     Timer timer;
-    Random random;
     Color backgroundColor = new Color(143, 122, 184);
     Color gridColor = new Color(111, 111, 111);
     Color livingCellColor = new Color(113, 17, 72);
+    JButton startButton = new JButton("Start");
+    Color startButtonColor = new Color(50, 225, 226);
 
     GamePanel() {
-        random = new Random();
         this.setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT));
         this.setBackground(backgroundColor);
         this.setFocusable(true);
-        this.addKeyListener(new myKeyAdapter());
-        startGame();
+        startButton.setBackground(startButtonColor);
+        startButton.setForeground(Color.white);
+        startButton.addActionListener(e -> startGame());
+        this.add(startButton);
+        this.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                Graphics g = getGraphics();
+                g.setColor(livingCellColor);
+                if (!running) {
+                    System.out.println(translateToCell(e.getY()) + ", " + translateToCell(e.getX()));
+                    if (cells[translateToCell(e.getY())][translateToCell(e.getX())] == 1) {
+                        cells[translateToCell(e.getY())][translateToCell(e.getX())] = 0;
+                        g.setColor(backgroundColor);
+                    }
+                    else cells[translateToCell(e.getY())][translateToCell(e.getX())] = 1;
+                    g.fillRect(getCellX(translateToCell(e.getX())), getCellY(translateToCell(e.getY())), UNIT_SIZE, UNIT_SIZE);
+                }
+                g.dispose();
+            }
+        });
     }
 
     public void startGame() {
         running = true;
         timer = new Timer(DELAY, this);
         timer.start();
-        cells[0][0] = 1;
-        cells[0][1] = 1;
-        cells[1][1] = 1;
-        cells[2][1] = 1;
-        cells[2][2] = 1;
-        cells[1][3] = 1;
-        cells[3][1] = 1;
-        cells[4][6] = 1;
-        cells[7][0] = 1;
-        cells[10][15] = 1;
-        cells[14][5] = 1;
-        cells[30][10] = 1;
-        cells[30][12] = 1;
-        cells[30][11] = 1;
     }
-
-    public int getCellX(int i) { return i * UNIT_SIZE; }
-    public int getCellY(int j) { return j * UNIT_SIZE; }
 
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -61,24 +62,24 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     public void draw(Graphics g) {
-        if (running) {
-            // draw grid:
-            g.setColor(gridColor);
-            for (int i = 0; i < WIDTH_UNITS; i++) {
-                g.drawLine(i*UNIT_SIZE, 0, i*UNIT_SIZE, SCREEN_HEIGHT);
-                g.drawLine(0, i*UNIT_SIZE, SCREEN_WIDTH, i*UNIT_SIZE);
-            }
-            // drawing living cells
-            for (int i = 0; i < HEIGHT_UNITS; i++) {
-                for (int j = 0; j < WIDTH_UNITS; j++) {
-                    if (cells[i][j] == 1) {
-                        g.setColor(livingCellColor);
-                        g.fillRect(getCellX(i), getCellY(j), UNIT_SIZE, UNIT_SIZE);
-                    }
-                }
-            }
+        boolean hasLive = false;
+        // draw grid:
+        g.setColor(gridColor);
+        for (int i = 0; i < WIDTH_UNITS; i++) {
+            g.drawLine(i*UNIT_SIZE, 0, i*UNIT_SIZE, SCREEN_HEIGHT);
+            g.drawLine(0, i*UNIT_SIZE, SCREEN_WIDTH, i*UNIT_SIZE);
         }
-        else gameOver(g);
+        if (running) {
+            // drawing living cells
+            for (int i = 0; i < HEIGHT_UNITS; i++)
+                for (int j = 0; j < WIDTH_UNITS; j++)
+                    if (cells[i][j] == 1) {
+                        hasLive = true;
+                        g.setColor(livingCellColor);
+                        g.fillRect(getCellX(j), getCellY(i), UNIT_SIZE, UNIT_SIZE);
+                    }
+        }
+        if (!hasLive && running) gameOver(g);
     }
 
     public void nextGeneration() {
@@ -111,11 +112,13 @@ public class GamePanel extends JPanel implements ActionListener {
         g.drawString("Game Over", (SCREEN_WIDTH - metrics1.stringWidth("Game Over"))/2, SCREEN_HEIGHT/2);
     }
 
+    public int getCellX(int i) { return i * UNIT_SIZE; }
+    public int getCellY(int j) { return j * UNIT_SIZE; }
+    public int translateToCell(int n) { return n/UNIT_SIZE; }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         if (running) nextGeneration();
         repaint();
     }
-
-    public static class myKeyAdapter extends KeyAdapter { @Override public void keyPressed(KeyEvent e) { }}
 }
